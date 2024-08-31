@@ -2,11 +2,6 @@
 
 import os
 import sys
-# single thread doubles cuda performance - needs to be set before torch import
-if any(arg.startswith('--execution-provider') for arg in sys.argv):
-    os.environ['OMP_NUM_THREADS'] = '1'
-# reduce tensorflow log level
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import warnings
 from typing import List
 import platform
@@ -29,8 +24,8 @@ warnings.filterwarnings('ignore', category=UserWarning, module='torchvision')
 def parse_args() -> None:
     signal.signal(signal.SIGINT, lambda signal_number, frame: destroy())
     program = argparse.ArgumentParser(formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=100))
-    program.add_argument('-s', '--source', help='select an source image', dest='source_path')
-    program.add_argument('-t', '--target', help='select an target image or video', dest='target_path')
+    program.add_argument('-s', '--source', help='select a source image', dest='source_path')
+    program.add_argument('-t', '--target', help='select a target image or video', dest='target_path')
     program.add_argument('-o', '--output', help='select output file or directory', dest='output_path')
     program.add_argument('--frame-processor', help='frame processors (choices: face_swapper, face_enhancer, ...)', dest='frame_processor', default=['face_swapper'], nargs='+')
     program.add_argument('--keep-fps', help='keep target fps', dest='keep_fps', action='store_true')
@@ -45,8 +40,8 @@ def parse_args() -> None:
     program.add_argument('--output-video-encoder', help='encoder used for the output video', dest='output_video_encoder', default='libx264', choices=['libx264', 'libx265', 'libvpx-vp9', 'h264_nvenc', 'hevc_nvenc'])
     program.add_argument('--output-video-quality', help='quality used for the output video', dest='output_video_quality', type=int, default=35, choices=range(101), metavar='[0-100]')
     program.add_argument('--max-memory', help='maximum amount of RAM in GB', dest='max_memory', type=int)
-    program.add_argument('--execution-provider', help='available execution provider (choices: cpu, ...)', dest='execution_provider', default=['cpu'], choices=suggest_execution_providers(), nargs='+')
-    program.add_argument('--execution-threads', help='number of execution threads', dest='execution_threads', type=int, default=suggest_execution_threads())
+    program.add_argument('--execution-provider', help='available execution provider (choices: cpu, ...)', dest='execution_provider', default=['cpu'], choices=['cpu'], nargs='+')
+    program.add_argument('--execution-threads', help='number of execution threads', dest='execution_threads', type=int, default=1)
     program.add_argument('-v', '--version', action='version', version=f'{adarsh.metadata.name} {adarsh.metadata.version}')
 
     args = program.parse_args()
@@ -77,28 +72,19 @@ def encode_execution_providers(execution_providers: List[str]) -> List[str]:
 
 
 def decode_execution_providers(execution_providers: List[str]) -> List[str]:
-    return [provider for provider, encoded_execution_provider in zip(onnxruntime.get_available_providers(), encode_execution_providers(onnxruntime.get_available_providers()))
-            if any(execution_provider in encoded_execution_provider for execution_provider in execution_providers)]
+    return [provider for provider in onnxruntime.get_available_providers() if 'cpu' in provider.lower()]
 
 
 def suggest_execution_providers() -> List[str]:
-    return encode_execution_providers(onnxruntime.get_available_providers())
+    return ['cpu']
 
 
 def suggest_execution_threads() -> int:
-    if 'CUDAExecutionProvider' in onnxruntime.get_available_providers():
-        return 8
     return 1
 
 
 def limit_resources() -> None:
-    # prevent tensorflow memory leak
-    gpus = tensorflow.config.experimental.list_physical_devices('GPU')
-    for gpu in gpus:
-        tensorflow.config.experimental.set_virtual_device_configuration(gpu, [
-            tensorflow.config.experimental.VirtualDeviceConfiguration(memory_limit=1024)
-        ])
-    # limit memory usage
+    # Limit memory usage
     if adarsh.globals.max_memory:
         memory = adarsh.globals.max_memory * 1024 ** 3
         if platform.system().lower() == 'darwin':
@@ -180,41 +166,25 @@ def start() -> None:
         update_status('Creating video with 30 FPS...')
         create_video(adarsh.globals.target_path)
     # handle audio
-    if adarsh.globals.skip_audio:
-        move_temp(adarsh.globals.target_path, adarsh.globals.output_path)
-        update_status('Skipping audio...')
-    else:
-        if adarsh.globals.keep_fps:
-            update_status('Restoring audio...')
-        else:
-            update_status('Restoring audio might cause issues as fps are not kept...')
-        restore_audio(adarsh.globals.target_path, adarsh.globals.output_path)
-    # clean temp
-    update_status('Cleaning temporary resources...')
-    clean_temp(adarsh.globals.target_path)
-    # validate video
-    if is_video(adarsh.globals.target_path):
-        update_status('Processing to video succeed!')
-    else:
-        update_status('Processing to video failed!')
+    if not adarsh.globals.skip_audio:
+        restore_audio(adarsh.globals.target_path)
+    # move temp files
+    if not adarsh.globals.keep_frames:
+        move_temp(adarsh.globals.output_path)
+    # clean temp files
+    clean_temp()
+    update_status('Processing succeed!')
 
 
 def destroy() -> None:
-    if adarsh.globals.target_path:
-        clean_temp(adarsh.globals.target_path)
-    sys.exit()
+    update_status('Exiting...')
+    clean_temp()
+    sys.exit(0)
 
 
-def run() -> None:
-    parse_args()
+if __name__ == '__main__':
     if not pre_check():
-        return
-    for frame_processor in get_frame_processors_modules(adarsh.globals.frame_processors):
-        if not frame_processor.pre_check():
-            return
+        destroy()
+    parse_args()
     limit_resources()
-    if adarsh.globals.headless:
-        start()
-    else:
-        window = ui.init(start, destroy)
-        window.mainloop()
+    start()
