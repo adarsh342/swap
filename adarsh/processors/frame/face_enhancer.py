@@ -1,6 +1,9 @@
 from typing import Any, List, Callable
 import cv2
 import threading
+import os
+import requests
+
 from gfpgan.utils import GFPGANer
 
 import adarsh.globals
@@ -8,12 +11,29 @@ import adarsh.processors.frame.core
 from adarsh.core import update_status
 from adarsh.face_analyser import get_many_faces
 from adarsh.typing import Frame, Face
-from adarsh.utilities import conditional_download, resolve_relative_path, is_image, is_video
+from adarsh.utilities import is_image, is_video
 
 FACE_ENHANCER = None
 THREAD_SEMAPHORE = threading.Semaphore()
 THREAD_LOCK = threading.Lock()
 NAME = 'ADARSH.FACE-ENHANCER'
+
+MODEL_URL = 'https://github.com/TencentARC/GFPGAN/releases/download/v1.3.4/GFPGANv1.4.pth'
+MODEL_PATH = '/content/swap/models/GFPGANv1.4.pth'
+
+
+def download_model_if_needed() -> None:
+    if not os.path.isfile(MODEL_PATH):
+        print(f"Model not found at {MODEL_PATH}. Downloading...")
+        os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
+        response = requests.get(MODEL_URL, stream=True)
+        if response.status_code == 200:
+            with open(MODEL_PATH, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            print("Model downloaded successfully.")
+        else:
+            raise RuntimeError(f"Failed to download model from {MODEL_URL}")
 
 
 def get_face_enhancer() -> Any:
@@ -21,9 +41,8 @@ def get_face_enhancer() -> Any:
 
     with THREAD_LOCK:
         if FACE_ENHANCER is None:
-            model_path = resolve_relative_path('../models/GFPGANv1.4.pth')
-            # todo: set models path -> https://github.com/TencentARC/GFPGAN/issues/399
-            FACE_ENHANCER = GFPGANer(model_path=model_path, upscale=1, device=get_device())
+            download_model_if_needed()
+            FACE_ENHANCER = GFPGANer(model_path=MODEL_PATH, upscale=1, device=get_device())
     return FACE_ENHANCER
 
 
@@ -37,17 +56,10 @@ def get_device() -> str:
 
 def clear_face_enhancer() -> None:
     global FACE_ENHANCER
-
     FACE_ENHANCER = None
 
 
 def pre_check() -> bool:
-    download_directory_path = resolve_relative_path('../models')
-    conditional_download(download_directory_path, ['https://github.com/TencentARC/GFPGAN/releases/download/v1.3.4/GFPGANv1.4.pth'])
-    return True
-
-
-def pre_start() -> bool:
     if not is_image(adarsh.globals.target_path) and not is_video(adarsh.globals.target_path):
         update_status('Select an image or video for target path.', NAME)
         return False
