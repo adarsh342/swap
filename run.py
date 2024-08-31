@@ -3,4 +3,4 @@
 from adarsh import core
 
 if __name__ == '__main__':
-    core.run()
+    core.start()  # Call the start function instead of run
