@@ -3,4 +3,9 @@
 from adarsh import core
 
 if __name__ == '__main__':
-    core.start()  # Call the start function instead of run
+    if not core.pre_check():
+        core.destroy()
+    core.parse_args()
+    core.limit_resources()
+    core.start()
+v
