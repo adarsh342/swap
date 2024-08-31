@@ -1,3 +1,3 @@
 [flake8]
 select = E3, E4, F
-per-file-ignores = roop/core.py:E402,F401
+per-file-ignores = adarsh/core.py:E402,F401
