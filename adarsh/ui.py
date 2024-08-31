@@ -7,14 +7,14 @@ from typing import Any, Callable, Tuple, Optional
 import cv2
 from PIL import Image, ImageOps
 
-import roop.globals
-import roop.metadata
-from roop.face_analyser import get_one_face
-from roop.capturer import get_video_frame, get_video_frame_total
-from roop.face_reference import get_face_reference, set_face_reference, clear_face_reference
-from roop.predictor import predict_frame, clear_predictor
-from roop.processors.frame.core import get_frame_processors_modules
-from roop.utilities import is_image, is_video, resolve_relative_path
+import adarsh.globals
+import adarsh.metadata
+from adarsh.face_analyser import get_one_face
+from adarsh.capturer import get_video_frame, get_video_frame_total
+from adarsh.face_reference import get_face_reference, set_face_reference, clear_face_reference
+from adarsh.predictor import predict_frame, clear_predictor
+from adarsh.processors.frame.core import get_frame_processors_modules
+from adarsh.utilities import is_image, is_video, resolve_relative_path
 
 ROOT = None
 ROOT_HEIGHT = 700
@@ -60,23 +60,23 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
 
     root = CTk()
     root.minsize(ROOT_WIDTH, ROOT_HEIGHT)
-    root.title(f'{roop.metadata.name} {roop.metadata.version}')
+    root.title(f'{adarsh.metadata.name} {adarsh.metadata.version}')
     root.configure()
     root.protocol('WM_DELETE_WINDOW', lambda: destroy())
 
-    source_label = ctk.CTkLabel(root, text=None, fg_color=ctk.ThemeManager.theme.get('RoopDropArea').get('fg_color'))
+    source_label = ctk.CTkLabel(root, text=None, fg_color=ctk.ThemeManager.theme.get('AdarshDropArea').get('fg_color'))
     source_label.place(relx=0.1, rely=0.1, relwidth=0.3, relheight=0.25)
     source_label.drop_target_register(DND_ALL)
     source_label.dnd_bind('<<Drop>>', lambda event: select_source_path(event.data))
-    if roop.globals.source_path:
-        select_source_path(roop.globals.source_path)
+    if adarsh.globals.source_path:
+        select_source_path(adarsh.globals.source_path)
 
-    target_label = ctk.CTkLabel(root, text=None, fg_color=ctk.ThemeManager.theme.get('RoopDropArea').get('fg_color'))
+    target_label = ctk.CTkLabel(root, text=None, fg_color=ctk.ThemeManager.theme.get('AdarshDropArea').get('fg_color'))
     target_label.place(relx=0.6, rely=0.1, relwidth=0.3, relheight=0.25)
     target_label.drop_target_register(DND_ALL)
     target_label.dnd_bind('<<Drop>>', lambda event: select_target_path(event.data))
-    if roop.globals.target_path:
-        select_target_path(roop.globals.target_path)
+    if adarsh.globals.target_path:
+        select_target_path(adarsh.globals.target_path)
 
     source_button = ctk.CTkButton(root, text='Select a face', cursor='hand2', command=lambda: select_source_path())
     source_button.place(relx=0.1, rely=0.4, relwidth=0.3, relheight=0.1)
@@ -84,20 +84,20 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
     target_button = ctk.CTkButton(root, text='Select a target', cursor='hand2', command=lambda: select_target_path())
     target_button.place(relx=0.6, rely=0.4, relwidth=0.3, relheight=0.1)
 
-    keep_fps_value = ctk.BooleanVar(value=roop.globals.keep_fps)
-    keep_fps_checkbox = ctk.CTkSwitch(root, text='Keep target fps', variable=keep_fps_value, cursor='hand2', command=lambda: setattr(roop.globals, 'keep_fps', not roop.globals.keep_fps))
+    keep_fps_value = ctk.BooleanVar(value=adarsh.globals.keep_fps)
+    keep_fps_checkbox = ctk.CTkSwitch(root, text='Keep target fps', variable=keep_fps_value, cursor='hand2', command=lambda: setattr(adarsh.globals, 'keep_fps', not adarsh.globals.keep_fps))
     keep_fps_checkbox.place(relx=0.1, rely=0.6)
 
-    keep_frames_value = ctk.BooleanVar(value=roop.globals.keep_frames)
-    keep_frames_switch = ctk.CTkSwitch(root, text='Keep temporary frames', variable=keep_frames_value, cursor='hand2', command=lambda: setattr(roop.globals, 'keep_frames', keep_frames_value.get()))
+    keep_frames_value = ctk.BooleanVar(value=adarsh.globals.keep_frames)
+    keep_frames_switch = ctk.CTkSwitch(root, text='Keep temporary frames', variable=keep_frames_value, cursor='hand2', command=lambda: setattr(adarsh.globals, 'keep_frames', keep_frames_value.get()))
     keep_frames_switch.place(relx=0.1, rely=0.65)
 
-    skip_audio_value = ctk.BooleanVar(value=roop.globals.skip_audio)
-    skip_audio_switch = ctk.CTkSwitch(root, text='Skip target audio', variable=skip_audio_value, cursor='hand2', command=lambda: setattr(roop.globals, 'skip_audio', skip_audio_value.get()))
+    skip_audio_value = ctk.BooleanVar(value=adarsh.globals.skip_audio)
+    skip_audio_switch = ctk.CTkSwitch(root, text='Skip target audio', variable=skip_audio_value, cursor='hand2', command=lambda: setattr(adarsh.globals, 'skip_audio', skip_audio_value.get()))
     skip_audio_switch.place(relx=0.6, rely=0.6)
 
-    many_faces_value = ctk.BooleanVar(value=roop.globals.many_faces)
-    many_faces_switch = ctk.CTkSwitch(root, text='Many faces', variable=many_faces_value, cursor='hand2', command=lambda: setattr(roop.globals, 'many_faces', many_faces_value.get()))
+    many_faces_value = ctk.BooleanVar(value=adarsh.globals.many_faces)
+    many_faces_switch = ctk.CTkSwitch(root, text='Many faces', variable=many_faces_value, cursor='hand2', command=lambda: setattr(adarsh.globals, 'many_faces', many_faces_value.get()))
     many_faces_switch.place(relx=0.6, rely=0.65)
 
     start_button = ctk.CTkButton(root, text='Start', cursor='hand2', command=lambda: select_output_path(start))
@@ -114,7 +114,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
 
     donate_label = ctk.CTkLabel(root, text='^_^ Donate to project ^_^', justify='center', cursor='hand2')
     donate_label.place(relx=0.1, rely=0.95, relwidth=0.8)
-    donate_label.configure(text_color=ctk.ThemeManager.theme.get('RoopDonate').get('text_color'))
+    donate_label.configure(text_color=ctk.ThemeManager.theme.get('AdarshDonate').get('text_color'))
     donate_label.bind('<Button>', lambda event: webbrowser.open('https://github.com/sponsors/s0md3v'))
 
     return root
@@ -152,12 +152,12 @@ def select_source_path(source_path: Optional[str] = None) -> None:
     if source_path is None:
         source_path = ctk.filedialog.askopenfilename(title='select an source image', initialdir=RECENT_DIRECTORY_SOURCE)
     if is_image(source_path):
-        roop.globals.source_path = source_path
-        RECENT_DIRECTORY_SOURCE = os.path.dirname(roop.globals.source_path)
-        image = render_image_preview(roop.globals.source_path, (200, 200))
+        adarsh.globals.source_path = source_path
+        RECENT_DIRECTORY_SOURCE = os.path.dirname(adarsh.globals.source_path)
+        image = render_image_preview(adarsh.globals.source_path, (200, 200))
         source_label.configure(image=image)
     else:
-        roop.globals.source_path = None
+        adarsh.globals.source_path = None
         source_label.configure(image=None)
 
 
@@ -170,32 +170,32 @@ def select_target_path(target_path: Optional[str] = None) -> None:
     if target_path is None:
         target_path = ctk.filedialog.askopenfilename(title='select an target image or video', initialdir=RECENT_DIRECTORY_TARGET)
     if is_image(target_path):
-        roop.globals.target_path = target_path
-        RECENT_DIRECTORY_TARGET = os.path.dirname(roop.globals.target_path)
-        image = render_image_preview(roop.globals.target_path, (200, 200))
+        adarsh.globals.target_path = target_path
+        RECENT_DIRECTORY_TARGET = os.path.dirname(adarsh.globals.target_path)
+        image = render_image_preview(adarsh.globals.target_path, (200, 200))
         target_label.configure(image=image)
     elif is_video(target_path):
-        roop.globals.target_path = target_path
-        RECENT_DIRECTORY_TARGET = os.path.dirname(roop.globals.target_path)
+        adarsh.globals.target_path = target_path
+        RECENT_DIRECTORY_TARGET = os.path.dirname(adarsh.globals.target_path)
         video_frame = render_video_preview(target_path, (200, 200))
         target_label.configure(image=video_frame)
     else:
-        roop.globals.target_path = None
+        adarsh.globals.target_path = None
         target_label.configure(image=None)
 
 
 def select_output_path(start: Callable[[], None]) -> None:
     global RECENT_DIRECTORY_OUTPUT
 
-    if is_image(roop.globals.target_path):
+    if is_image(adarsh.globals.target_path):
         output_path = ctk.filedialog.asksaveasfilename(title='save image output file', defaultextension='.png', initialfile='output.png', initialdir=RECENT_DIRECTORY_OUTPUT)
-    elif is_video(roop.globals.target_path):
+    elif is_video(adarsh.globals.target_path):
         output_path = ctk.filedialog.asksaveasfilename(title='save video output file', defaultextension='.mp4', initialfile='output.mp4', initialdir=RECENT_DIRECTORY_OUTPUT)
     else:
         output_path = None
     if output_path:
-        roop.globals.output_path = output_path
-        RECENT_DIRECTORY_OUTPUT = os.path.dirname(roop.globals.output_path)
+        adarsh.globals.output_path = output_path
+        RECENT_DIRECTORY_OUTPUT = os.path.dirname(adarsh.globals.output_path)
         start()
 
 
@@ -226,40 +226,40 @@ def toggle_preview() -> None:
         PREVIEW.unbind('<Left>')
         PREVIEW.withdraw()
         clear_predictor()
-    elif roop.globals.source_path and roop.globals.target_path:
+    elif adarsh.globals.source_path and adarsh.globals.target_path:
         init_preview()
-        update_preview(roop.globals.reference_frame_number)
+        update_preview(adarsh.globals.reference_frame_number)
         PREVIEW.deiconify()
 
 
 def init_preview() -> None:
     PREVIEW.title('Preview [ ↕ Reference face ]')
-    if is_image(roop.globals.target_path):
+    if is_image(adarsh.globals.target_path):
         preview_slider.pack_forget()
-    if is_video(roop.globals.target_path):
-        video_frame_total = get_video_frame_total(roop.globals.target_path)
+    if is_video(adarsh.globals.target_path):
+        video_frame_total = get_video_frame_total(adarsh.globals.target_path)
         if video_frame_total > 0:
             PREVIEW.title('Preview [ ↕ Reference face ] [ ↔ Frame number ]')
             PREVIEW.bind('<Right>', lambda event: update_frame(int(video_frame_total / 20)))
             PREVIEW.bind('<Left>', lambda event: update_frame(int(video_frame_total / -20)))
         preview_slider.configure(to=video_frame_total)
         preview_slider.pack(fill='x')
-        preview_slider.set(roop.globals.reference_frame_number)
+        preview_slider.set(adarsh.globals.reference_frame_number)
 
 
 def update_preview(frame_number: int = 0) -> None:
-    if roop.globals.source_path and roop.globals.target_path:
-        temp_frame = get_video_frame(roop.globals.target_path, frame_number)
+    if adarsh.globals.source_path and adarsh.globals.target_path:
+        temp_frame = get_video_frame(adarsh.globals.target_path, frame_number)
         if predict_frame(temp_frame):
             sys.exit()
-        source_face = get_one_face(cv2.imread(roop.globals.source_path))
+        source_face = get_one_face(cv2.imread(adarsh.globals.source_path))
         if not get_face_reference():
-            reference_frame = get_video_frame(roop.globals.target_path, roop.globals.reference_frame_number)
-            reference_face = get_one_face(reference_frame, roop.globals.reference_face_position)
+            reference_frame = get_video_frame(adarsh.globals.target_path, adarsh.globals.reference_frame_number)
+            reference_face = get_one_face(reference_frame, adarsh.globals.reference_face_position)
             set_face_reference(reference_face)
         else:
             reference_face = get_face_reference()
-        for frame_processor in get_frame_processors_modules(roop.globals.frame_processors):
+        for frame_processor in get_frame_processors_modules(adarsh.globals.frame_processors):
             temp_frame = frame_processor.process_frame(
                 source_face,
                 reference_face,
@@ -274,8 +274,8 @@ def update_preview(frame_number: int = 0) -> None:
 def update_face_reference(steps: int) -> None:
     clear_face_reference()
     reference_frame_number = int(preview_slider.get())
-    roop.globals.reference_face_position += steps
-    roop.globals.reference_frame_number = reference_frame_number
+    adarsh.globals.reference_face_position += steps
+    adarsh.globals.reference_frame_number = reference_frame_number
     update_preview(reference_frame_number)
 
 
