@@ -8,4 +8,3 @@ if __name__ == '__main__':
     core.parse_args()
     core.limit_resources()
     core.start()
-v
