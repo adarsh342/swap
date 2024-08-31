@@ -17,7 +17,7 @@ FACE_SWAPPER = None
 THREAD_SEMAPHORE = threading.Semaphore()
 THREAD_LOCK = threading.Lock()
 NAME = 'ADARSH.FACE-SWAPPER'
-MODEL_URL = 'https://path-to-your-model/inswapper_128.onnx'
+MODEL_URL = 'https://huggingface.co/datasets/OwlMaster/gg2/resolve/main/inswapper_128.onnx'
 MODEL_PATH = '/content/swap/models/inswapper_128.onnx'
 
 def download_model(url: str, dest_path: str) -> None:
