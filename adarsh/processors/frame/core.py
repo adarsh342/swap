@@ -8,7 +8,7 @@ from types import ModuleType
 from typing import Any, List, Callable
 from tqdm import tqdm
 
-import roop
+import adarsh
 
 FRAME_PROCESSORS_MODULES: List[ModuleType] = []
 FRAME_PROCESSORS_INTERFACE = [
@@ -24,7 +24,7 @@ FRAME_PROCESSORS_INTERFACE = [
 
 def load_frame_processor_module(frame_processor: str) -> Any:
     try:
-        frame_processor_module = importlib.import_module(f'roop.processors.frame.{frame_processor}')
+        frame_processor_module = importlib.import_module(f'adarsh.processors.frame.{frame_processor}')
         for method_name in FRAME_PROCESSORS_INTERFACE:
             if not hasattr(frame_processor_module, method_name):
                 raise NotImplementedError
@@ -46,10 +46,10 @@ def get_frame_processors_modules(frame_processors: List[str]) -> List[ModuleType
 
 
 def multi_process_frame(source_path: str, temp_frame_paths: List[str], process_frames: Callable[[str, List[str], Any], None], update: Callable[[], None]) -> None:
-    with ThreadPoolExecutor(max_workers=roop.globals.execution_threads) as executor:
+    with ThreadPoolExecutor(max_workers=adarsh.globals.execution_threads) as executor:
         futures = []
         queue = create_queue(temp_frame_paths)
-        queue_per_future = max(len(temp_frame_paths) // roop.globals.execution_threads, 1)
+        queue_per_future = max(len(temp_frame_paths) // adarsh.globals.execution_threads, 1)
         while not queue.empty():
             future = executor.submit(process_frames, source_path, pick_queue(queue, queue_per_future), update)
             futures.append(future)
@@ -84,8 +84,8 @@ def update_progress(progress: Any = None) -> None:
     memory_usage = process.memory_info().rss / 1024 / 1024 / 1024
     progress.set_postfix({
         'memory_usage': '{:.2f}'.format(memory_usage).zfill(5) + 'GB',
-        'execution_providers': roop.globals.execution_providers,
-        'execution_threads': roop.globals.execution_threads
+        'execution_providers': adarsh.globals.execution_providers,
+        'execution_threads': adarsh.globals.execution_threads
     })
     progress.refresh()
     progress.update(1)
