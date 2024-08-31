@@ -3,17 +3,17 @@ import cv2
 import threading
 from gfpgan.utils import GFPGANer
 
-import roop.globals
-import roop.processors.frame.core
-from roop.core import update_status
-from roop.face_analyser import get_many_faces
-from roop.typing import Frame, Face
-from roop.utilities import conditional_download, resolve_relative_path, is_image, is_video
+import adarsh.globals
+import adarsh.processors.frame.core
+from adarsh.core import update_status
+from adarsh.face_analyser import get_many_faces
+from adarsh.typing import Frame, Face
+from adarsh.utilities import conditional_download, resolve_relative_path, is_image, is_video
 
 FACE_ENHANCER = None
 THREAD_SEMAPHORE = threading.Semaphore()
 THREAD_LOCK = threading.Lock()
-NAME = 'ROOP.FACE-ENHANCER'
+NAME = 'ADARSH.FACE-ENHANCER'
 
 
 def get_face_enhancer() -> Any:
@@ -28,9 +28,9 @@ def get_face_enhancer() -> Any:
 
 
 def get_device() -> str:
-    if 'CUDAExecutionProvider' in roop.globals.execution_providers:
+    if 'CUDAExecutionProvider' in adarsh.globals.execution_providers:
         return 'cuda'
-    if 'CoreMLExecutionProvider' in roop.globals.execution_providers:
+    if 'CoreMLExecutionProvider' in adarsh.globals.execution_providers:
         return 'mps'
     return 'cpu'
 
@@ -48,7 +48,7 @@ def pre_check() -> bool:
 
 
 def pre_start() -> bool:
-    if not is_image(roop.globals.target_path) and not is_video(roop.globals.target_path):
+    if not is_image(adarsh.globals.target_path) and not is_video(adarsh.globals.target_path):
         update_status('Select an image or video for target path.', NAME)
         return False
     return True
@@ -101,4 +101,4 @@ def process_image(source_path: str, target_path: str, output_path: str) -> None:
 
 
 def process_video(source_path: str, temp_frame_paths: List[str]) -> None:
-    roop.processors.frame.core.process_video(None, temp_frame_paths, process_frames)
+    adarsh.processors.frame.core.process_video(None, temp_frame_paths, process_frames)
