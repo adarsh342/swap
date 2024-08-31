@@ -46,6 +46,11 @@ def parse_args() -> None:
 
     args = program.parse_args()
 
+    # Debugging print statements
+    print(f"Source Path: {args.source_path}")
+    print(f"Target Path: {args.target_path}")
+    print(f"Output Path: {args.output_path}")
+
     adarsh.globals.source_path = args.source_path
     adarsh.globals.target_path = args.target_path
     adarsh.globals.output_path = normalize_output_path(adarsh.globals.source_path, adarsh.globals.target_path, args.output_path)
@@ -84,14 +89,13 @@ def suggest_execution_threads() -> int:
 
 
 def limit_resources() -> None:
-    # Limit memory usage
     if adarsh.globals.max_memory:
         memory = adarsh.globals.max_memory * 1024 ** 3
         if platform.system().lower() == 'darwin':
             memory = adarsh.globals.max_memory * 1024 ** 6
         if platform.system().lower() == 'windows':
             import ctypes
-            kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+            kernel32 = ctypes.windll.kernel32
             kernel32.SetProcessWorkingSetSize(-1, ctypes.c_size_t(memory), ctypes.c_size_t(memory))
         else:
             import resource
@@ -115,31 +119,33 @@ def update_status(message: str, scope: str = 'ADARSH.CORE') -> None:
 
 
 def start() -> None:
+    if not adarsh.globals.target_path:
+        print("Error: Target path is not set.")
+        return
+
     for frame_processor in get_frame_processors_modules(adarsh.globals.frame_processors):
         if not frame_processor.pre_start():
             return
-    # process image to image
+
     if has_image_extension(adarsh.globals.target_path):
         if predict_image(adarsh.globals.target_path):
             destroy()
         shutil.copy2(adarsh.globals.target_path, adarsh.globals.output_path)
-        # process frame
         for frame_processor in get_frame_processors_modules(adarsh.globals.frame_processors):
             update_status('Progressing...', frame_processor.NAME)
             frame_processor.process_image(adarsh.globals.source_path, adarsh.globals.output_path, adarsh.globals.output_path)
             frame_processor.post_process()
-        # validate image
         if is_image(adarsh.globals.target_path):
             update_status('Processing to image succeed!')
         else:
             update_status('Processing to image failed!')
         return
-    # process image to videos
+
     if predict_video(adarsh.globals.target_path):
         destroy()
+
     update_status('Creating temporary resources...')
     create_temp(adarsh.globals.target_path)
-    # extract frames
     if adarsh.globals.keep_fps:
         fps = detect_fps(adarsh.globals.target_path)
         update_status(f'Extracting frames with {fps} FPS...')
@@ -147,7 +153,7 @@ def start() -> None:
     else:
         update_status('Extracting frames with 30 FPS...')
         extract_frames(adarsh.globals.target_path)
-    # process frame
+
     temp_frame_paths = get_temp_frame_paths(adarsh.globals.target_path)
     if temp_frame_paths:
         for frame_processor in get_frame_processors_modules(adarsh.globals.frame_processors):
@@ -157,7 +163,7 @@ def start() -> None:
     else:
         update_status('Frames not found...')
         return
-    # create video
+
     if adarsh.globals.keep_fps:
         fps = detect_fps(adarsh.globals.target_path)
         update_status(f'Creating video with {fps} FPS...')
@@ -165,13 +171,12 @@ def start() -> None:
     else:
         update_status('Creating video with 30 FPS...')
         create_video(adarsh.globals.target_path)
-    # handle audio
+
     if not adarsh.globals.skip_audio:
         restore_audio(adarsh.globals.target_path)
-    # move temp files
+
     if not adarsh.globals.keep_frames:
         move_temp(adarsh.globals.output_path)
-    # clean temp files
     clean_temp()
     update_status('Processing succeed!')
 
